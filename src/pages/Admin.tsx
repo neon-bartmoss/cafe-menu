@@ -1,9 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminDashboard } from '@/components/AdminDashboard';
+import { dataService } from '@/services/dataService';
 
 export const Admin = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -11,19 +12,31 @@ export const Admin = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
+  // Check auth state on component mount
+  useEffect(() => {
+    const authState = dataService.getAuthState();
+    setIsLoggedIn(authState);
+  }, []);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     // Simple authentication - in real app, this would be more secure
     if (username === 'admin' && password === 'admin123') {
       setIsLoggedIn(true);
+      dataService.setAuthState(true);
       setError('');
     } else {
       setError('نام کاربری یا رمز عبور اشتباه است');
     }
   };
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    dataService.clearAuthState();
+  };
+
   if (isLoggedIn) {
-    return <AdminDashboard onLogout={() => setIsLoggedIn(false)} />;
+    return <AdminDashboard onLogout={handleLogout} />;
   }
 
   return (

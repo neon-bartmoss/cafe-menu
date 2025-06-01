@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, LogOut, Edit, Trash2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,11 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { menuData } from '@/data/menuData';
 import { Product } from '@/types/product';
+import { dataService } from '@/services/dataService';
+import { useToast } from '@/hooks/use-toast';
 
 interface AdminDashboardProps {
   onLogout: () => void;
+}
+
+interface Category {
+  id: string;
+  name: string;
 }
 
 export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
@@ -21,6 +27,9 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>('');
+  const [menuData, setMenuData] = useState<Record<string, Product[]>>({});
+  const [categories, setCategories] = useState<Category[]>([]);
+  const { toast } = useToast();
   
   const [formData, setFormData] = useState({
     name: '',
@@ -35,12 +44,17 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
     name: ''
   });
 
-  const categories = [
-    { id: 'hot-drinks', name: 'نوشیدنی های گرم' },
-    { id: 'cold-drinks', name: 'نوشیدنی های سرد' },
-    { id: 'desserts', name: 'دسر و شیرینی' },
-    { id: 'milkshakes', name: 'میلک شیک' }
-  ];
+  // Load data on component mount
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = () => {
+    const data = dataService.getMenuData();
+    const cats = dataService.getCategories();
+    setMenuData(data);
+    setCategories(cats);
+  };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,18 +92,66 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Product data:', formData);
-    // In a real app, this would save to database
-    setIsAddingProduct(false);
-    resetForm();
+    
+    try {
+      const productData = {
+        name: formData.name,
+        description: formData.description,
+        price: parseFloat(formData.price),
+        image: formData.image,
+        category: formData.category
+      };
+
+      if (editingProduct) {
+        dataService.updateProduct(editingProduct.id, productData);
+        toast({
+          title: "محصول ویرایش شد",
+          description: "محصول با موفقیت ویرایش شد"
+        });
+      } else {
+        dataService.addProduct(productData);
+        toast({
+          title: "محصول اضافه شد",
+          description: "محصول جدید با موفقیت اضافه شد"
+        });
+      }
+
+      setIsAddingProduct(false);
+      resetForm();
+      loadData(); // Reload data to update UI
+    } catch (error) {
+      toast({
+        title: "خطا",
+        description: "مشکلی در ذخیره محصول پیش آمد",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleCategorySubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Category data:', categoryForm);
-    // In a real app, this would save to database
-    setIsAddingCategory(false);
-    resetCategoryForm();
+    
+    try {
+      dataService.addCategory({
+        id: categoryForm.id,
+        name: categoryForm.name
+      });
+      
+      toast({
+        title: "دسته‌بندی اضافه شد",
+        description: "دسته‌بندی جدید با موفقیت اضافه شد"
+      });
+      
+      setIsAddingCategory(false);
+      resetCategoryForm();
+      loadData(); // Reload data to update categories
+    } catch (error) {
+      toast({
+        title: "خطا",
+        description: "مشکلی در ذخیره دسته‌بندی پیش آمد",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEdit = (product: Product) => {
@@ -106,8 +168,20 @@ export const AdminDashboard = ({ onLogout }: AdminDashboardProps) => {
   };
 
   const handleDelete = (productId: string) => {
-    console.log('Delete product:', productId);
-    // In a real app, this would delete from database
+    try {
+      dataService.deleteProduct(productId);
+      toast({
+        title: "محصول حذف شد",
+        description: "محصول با موفقیت حذف شد"
+      });
+      loadData(); // Reload data to update UI
+    } catch (error) {
+      toast({
+        title: "خطا",
+        description: "مشکلی در حذف محصول پیش آمد",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
