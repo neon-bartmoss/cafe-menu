@@ -1,13 +1,28 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+
+import { useState } from 'react';
+import { Header } from '@/components/Header';
+import { MenuCategories } from '@/components/MenuCategories';
+import { ProductGrid } from '@/components/ProductGrid';
+import { CartProvider } from '@/contexts/CartContext';
+import { Cart } from '@/components/Cart';
 
 const Index = () => {
+  const [selectedCategory, setSelectedCategory] = useState('hot-drinks');
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
-        <p className="text-xl text-gray-600">Start building your amazing project here!</p>
+    <CartProvider>
+      <div className="min-h-screen bg-background font-vazir">
+        <Header />
+        <main className="container mx-auto px-4 py-8 max-w-7xl">
+          <MenuCategories 
+            selectedCategory={selectedCategory} 
+            onCategoryChange={setSelectedCategory} 
+          />
+          <ProductGrid category={selectedCategory} />
+        </main>
+        <Cart />
       </div>
-    </div>
+    </CartProvider>
   );
 };
 
